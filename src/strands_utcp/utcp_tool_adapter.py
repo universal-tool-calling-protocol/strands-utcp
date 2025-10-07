@@ -9,7 +9,39 @@ from typing import Any, Dict, List, Optional, Union
 from utcp.data.tool import Tool as UTCPTool
 from utcp.data.utcp_client_config import UtcpClientConfig
 from utcp.utcp_client import UtcpClient
+
+# Import all available call templates
 from utcp_http.http_call_template import HttpCallTemplate
+from utcp_http.sse_call_template import SseCallTemplate
+from utcp_http.streamable_http_call_template import StreamableHttpCallTemplate
+
+# Optional imports for other protocols
+try:
+    from utcp_cli.cli_call_template import CliCallTemplate
+except ImportError:
+    CliCallTemplate = None
+
+try:
+    from utcp_gql.gql_call_template import GqlCallTemplate
+except ImportError:
+    GqlCallTemplate = None
+
+try:
+    from utcp_mcp.mcp_call_template import McpCallTemplate
+except ImportError:
+    McpCallTemplate = None
+
+try:
+    from utcp_socket.tcp_call_template import TcpCallTemplate
+    from utcp_socket.udp_call_template import UdpCallTemplate
+except ImportError:
+    TcpCallTemplate = None
+    UdpCallTemplate = None
+
+try:
+    from utcp_text.text_call_template import TextCallTemplate
+except ImportError:
+    TextCallTemplate = None
 
 # Import Strands types for proper integration
 try:
@@ -204,7 +236,8 @@ class UtcpToolAdapter:
 
         Args:
             config: Configuration dictionary containing:
-                   - 'manual_call_templates': List of HTTP call template configurations
+                   - 'manual_call_templates': List of call template configurations
+                     Supported types: http, sse, streamable_http, cli, graphql, mcp, tcp, udp, text
         """
         self._config = config or {}
         self._utcp_client: Optional[UtcpClient] = None
@@ -225,7 +258,9 @@ class UtcpToolAdapter:
             # Convert manual call templates
             call_templates = []
             for template_config in self._config.get("manual_call_templates", []):
-                if template_config.get("call_template_type") == "http":
+                call_template_type = template_config.get("call_template_type")
+                
+                if call_template_type == "http":
                     call_template = HttpCallTemplate(
                         name=template_config["name"],
                         call_template_type="http",
@@ -234,6 +269,79 @@ class UtcpToolAdapter:
                         content_type=template_config.get("content_type", "application/json"),
                     )
                     call_templates.append(call_template)
+                
+                elif call_template_type == "sse":
+                    call_template = SseCallTemplate(
+                        name=template_config["name"],
+                        call_template_type="sse",
+                        url=template_config["url"],
+                        http_method=template_config.get("http_method", "GET"),
+                        content_type=template_config.get("content_type", "application/json"),
+                    )
+                    call_templates.append(call_template)
+                
+                elif call_template_type == "streamable_http":
+                    call_template = StreamableHttpCallTemplate(
+                        name=template_config["name"],
+                        call_template_type="streamable_http",
+                        url=template_config["url"],
+                        http_method=template_config.get("http_method", "GET"),
+                        content_type=template_config.get("content_type", "application/json"),
+                    )
+                    call_templates.append(call_template)
+                
+                elif call_template_type == "cli" and CliCallTemplate:
+                    call_template = CliCallTemplate(
+                        name=template_config["name"],
+                        call_template_type="cli",
+                        command=template_config["command"],
+                    )
+                    call_templates.append(call_template)
+                
+                elif call_template_type == "graphql" and GqlCallTemplate:
+                    call_template = GqlCallTemplate(
+                        name=template_config["name"],
+                        call_template_type="graphql",
+                        url=template_config["url"],
+                    )
+                    call_templates.append(call_template)
+                
+                elif call_template_type == "mcp" and McpCallTemplate:
+                    call_template = McpCallTemplate(
+                        name=template_config["name"],
+                        call_template_type="mcp",
+                        command=template_config["command"],
+                    )
+                    call_templates.append(call_template)
+                
+                elif call_template_type == "tcp" and TcpCallTemplate:
+                    call_template = TcpCallTemplate(
+                        name=template_config["name"],
+                        call_template_type="tcp",
+                        host=template_config["host"],
+                        port=template_config["port"],
+                    )
+                    call_templates.append(call_template)
+                
+                elif call_template_type == "udp" and UdpCallTemplate:
+                    call_template = UdpCallTemplate(
+                        name=template_config["name"],
+                        call_template_type="udp",
+                        host=template_config["host"],
+                        port=template_config["port"],
+                    )
+                    call_templates.append(call_template)
+                
+                elif call_template_type == "text" and TextCallTemplate:
+                    call_template = TextCallTemplate(
+                        name=template_config["name"],
+                        call_template_type="text",
+                        file_path=template_config["file_path"],
+                    )
+                    call_templates.append(call_template)
+                
+                else:
+                    logger.warning("Unsupported or unavailable call template type: %s", call_template_type)
 
             # Create UTCP client config
             utcp_config = UtcpClientConfig(manual_call_templates=call_templates)

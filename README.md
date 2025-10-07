@@ -112,19 +112,94 @@ async with UtcpToolAdapter(config) as adapter:
 
 ## Configuration
 
-### HTTP Call Templates
+### Supported Call Template Types
 
+The plugin supports all UTCP call template types:
+
+#### HTTP Templates
 ```python
-config = {
-    "manual_call_templates": [
-        {
-            "name": "api_name",
-            "call_template_type": "http",
-            "url": "https://api.example.com/utcp",
-            "http_method": "GET",  # GET, POST, PUT, DELETE
-            "content_type": "application/json"
-        }
-    ]
+{
+    "name": "api_name",
+    "call_template_type": "http",
+    "url": "https://api.example.com/utcp",
+    "http_method": "GET",  # GET, POST, PUT, DELETE
+    "content_type": "application/json"
+}
+```
+
+#### Server-Sent Events (SSE)
+```python
+{
+    "name": "sse_stream",
+    "call_template_type": "sse", 
+    "url": "https://api.example.com/stream",
+    "http_method": "GET"
+}
+```
+
+#### Streamable HTTP
+```python
+{
+    "name": "http_stream",
+    "call_template_type": "streamable_http",
+    "url": "https://api.example.com/stream",
+    "http_method": "POST"
+}
+```
+
+#### Command Line Interface
+```python
+{
+    "name": "cli_tool",
+    "call_template_type": "cli",
+    "command": "python script.py"
+}
+```
+
+#### GraphQL
+```python
+{
+    "name": "graphql_api",
+    "call_template_type": "graphql",
+    "url": "https://api.example.com/graphql"
+}
+```
+
+#### Model Context Protocol (MCP)
+```python
+{
+    "name": "mcp_server",
+    "call_template_type": "mcp",
+    "command": "node mcp-server.js"
+}
+```
+
+#### TCP Socket
+```python
+{
+    "name": "tcp_service",
+    "call_template_type": "tcp",
+    "host": "localhost",
+    "port": 8080
+}
+```
+
+#### UDP Socket
+```python
+{
+    "name": "udp_service", 
+    "call_template_type": "udp",
+    "host": "localhost",
+    "port": 8081
+}
+```
+
+#### Text File
+```python
+{
+    "name": "text_tools",
+    "call_template_type": "text",
+    "file_path": "/path/to/tools.txt"
 }
 ```
 
