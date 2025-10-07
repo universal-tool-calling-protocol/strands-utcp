@@ -1,4 +1,4 @@
-"""UTCP Tool Provider for Strands Agents SDK."""
+"""UTCP Tool Adapter for Strands Agents SDK."""
 
 import asyncio
 import json
@@ -57,18 +57,18 @@ def format_tool_name_for_bedrock(tool_name: str) -> str:
     return bedrock_name
 
 
-class UTCPToolProviderError(Exception):
-    """Exception for UTCP tool provider errors."""
+class UtcpToolAdapterError(Exception):
+    """Exception for UTCP tool adapter errors."""
     pass
 
 
-class UTCPAgentTool(AgentTool):
+class UtcpAgentTool(AgentTool):
     """Wrapper for UTCP tools to be used with Strands agents."""
     
-    def __init__(self, utcp_tool: UTCPTool, provider: "UTCPToolProvider"):
+    def __init__(self, utcp_tool: UTCPTool, adapter: "UtcpToolAdapter"):
         super().__init__()
         self.utcp_tool = utcp_tool
-        self.provider = provider
+        self.adapter = adapter
         
     @property
     def name(self) -> str:
@@ -160,7 +160,7 @@ class UTCPAgentTool(AgentTool):
         """Stream tool execution for Strands."""
         async def _execute():
             try:
-                result = await self.provider.call_tool(
+                result = await self.adapter.call_tool(
                     self.utcp_tool.name, 
                     tool_use.get("input", {})
                 )
@@ -193,26 +193,25 @@ class UTCPAgentTool(AgentTool):
     
     async def call(self, **kwargs) -> Any:
         """Execute the tool with given arguments."""
-        return await self.provider.call_tool(self.utcp_tool.name, kwargs)
+        return await self.adapter.call_tool(self.utcp_tool.name, kwargs)
 
 
-class UTCPToolProvider:
-    """UTCP Tool Provider for Strands Agents SDK."""
+class UtcpToolAdapter:
+    """UTCP Tool Adapter for Strands Agents SDK."""
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """Initialize UTCP tool provider.
+        """Initialize UTCP tool adapter.
 
         Args:
             config: Configuration dictionary containing:
                    - 'manual_call_templates': List of HTTP call template configurations
-                   - 'providers_file_path': Path to providers configuration file
         """
         self._config = config or {}
         self._utcp_client: Optional[UtcpClient] = None
-        self._tools_cache: List[UTCPAgentTool] = []
-        logger.debug("Initializing UTCP tool provider with config: %s", config)
+        self._tools_cache: List[UtcpAgentTool] = []
+        logger.debug("Initializing UTCP tool adapter with config: %s", config)
 
-    async def __aenter__(self) -> "UTCPToolProvider":
+    async def __aenter__(self) -> "UtcpToolAdapter":
         """Async context manager entry."""
         return await self.start()
 
@@ -220,7 +219,7 @@ class UTCPToolProvider:
         """Async context manager exit."""
         await self.stop()
 
-    async def start(self) -> "UTCPToolProvider":
+    async def start(self) -> "UtcpToolAdapter":
         """Initialize and start the UTCP client."""
         try:
             # Convert manual call templates
@@ -245,19 +244,19 @@ class UTCPToolProvider:
             # Load tools
             await self._load_tools()
             
-            logger.info("UTCP tool provider started successfully with %d tools", len(self._tools_cache))
+            logger.info("UTCP tool adapter started successfully with %d tools", len(self._tools_cache))
             return self
 
         except Exception as e:
-            logger.error("Failed to start UTCP tool provider: %s", e)
-            raise UTCPToolProviderError(f"UTCP tool provider initialization failed: {e}") from e
+            logger.error("Failed to start UTCP tool adapter: %s", e)
+            raise UtcpToolAdapterError(f"UTCP tool adapter initialization failed: {e}") from e
 
     async def stop(self) -> None:
         """Stop and cleanup the UTCP client."""
         if self._utcp_client:
             self._utcp_client = None
             self._tools_cache.clear()
-            logger.info("UTCP tool provider stopped")
+            logger.info("UTCP tool adapter stopped")
 
     async def _load_tools(self) -> None:
         """Load tools from UTCP client."""
@@ -266,17 +265,17 @@ class UTCPToolProvider:
             
         try:
             utcp_tools = await self._utcp_client.search_tools(query="", limit=1000)
-            self._tools_cache = [UTCPAgentTool(tool, self) for tool in utcp_tools]
+            self._tools_cache = [UtcpAgentTool(tool, self) for tool in utcp_tools]
             logger.debug("Loaded %d tools from UTCP client", len(self._tools_cache))
         except Exception as e:
             logger.error("Failed to load tools: %s", e)
             self._tools_cache = []
 
-    def list_tools(self) -> List[UTCPAgentTool]:
+    def list_tools(self) -> List[UtcpAgentTool]:
         """Get list of available tools."""
         return self._tools_cache.copy()
 
-    def get_tool(self, name: str) -> Optional[UTCPAgentTool]:
+    def get_tool(self, name: str) -> Optional[UtcpAgentTool]:
         """Get a specific tool by name."""
         for tool in self._tools_cache:
             if tool.tool_name == name or tool.utcp_tool.name == name:
@@ -286,7 +285,7 @@ class UTCPToolProvider:
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """Execute a tool with given arguments."""
         if not self._utcp_client:
-            raise UTCPToolProviderError("UTCP client not initialized")
+            raise UtcpToolAdapterError("UTCP client not initialized")
 
         try:
             logger.debug("Calling tool %s with arguments: %s", tool_name, arguments)
@@ -295,21 +294,21 @@ class UTCPToolProvider:
             return result
         except Exception as e:
             logger.error("Failed to call tool %s: %s", tool_name, e)
-            raise UTCPToolProviderError(f"Tool execution failed: {e}") from e
+            raise UtcpToolAdapterError(f"Tool execution failed: {e}") from e
 
-    async def search_tools(self, query: str, max_results: Optional[int] = None) -> List[UTCPAgentTool]:
+    async def search_tools(self, query: str, max_results: Optional[int] = None) -> List[UtcpAgentTool]:
         """Search for tools matching the query."""
         if not self._utcp_client:
-            raise UTCPToolProviderError("UTCP client not initialized")
+            raise UtcpToolAdapterError("UTCP client not initialized")
 
         try:
             limit = max_results or 100
             utcp_tools = await self._utcp_client.search_tools(query=query, limit=limit)
-            return [UTCPAgentTool(tool, self) for tool in utcp_tools]
+            return [UtcpAgentTool(tool, self) for tool in utcp_tools]
         except Exception as e:
             logger.error("Failed to search tools: %s", e)
             return []
 
-    def to_strands_tools(self) -> List[UTCPAgentTool]:
+    def to_strands_tools(self) -> List[UtcpAgentTool]:
         """Convert UTCP tools to Strands-compatible tool objects."""
         return self._tools_cache.copy()

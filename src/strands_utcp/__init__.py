@@ -6,20 +6,20 @@ Agents framework, enabling agents to discover and use external tools via the UTC
 
 from typing import Dict, List, Optional
 
-from .utcp_tool_provider import UTCPToolProvider, UTCPToolProviderError
+from .utcp_tool_adapter import UtcpToolAdapter, UtcpToolAdapterError
 
 __version__ = "0.1.0"
-__all__ = ["UTCPToolProvider", "UTCPToolProviderError"]
+__all__ = ["UtcpToolAdapter", "UtcpToolAdapterError"]
 
 
-def create_utcp_provider(config: Optional[Dict] = None, **kwargs) -> UTCPToolProvider:
+def create_utcp_adapter(config: Optional[Dict] = None, **kwargs) -> UtcpToolAdapter:
     """Create a UTCP tool provider with default settings.
 
     Args:
         config: UTCP configuration dictionary
-        **kwargs: Additional provider parameters
+        **kwargs: Additional adapter parameters
 
     Returns:
-        Configured UTCPToolProvider instance
+        Configured UtcpToolAdapter instance
     """
-    return UTCPToolProvider(config=config, **kwargs)
+    return UtcpToolAdapter(config=config, **kwargs)

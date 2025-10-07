@@ -8,18 +8,22 @@ Universal Tool Calling Protocol (UTCP) community plugin for [Strands Agents SDK]
 
 ## Features
 
-- **Universal Tool Access** - Connect to any UTCP-compatible tool provider
+- **Universal Tool Access** - Connect to any UTCP-compatible tool source
 - **OpenAPI/Swagger Support** - Automatic tool discovery from API specifications  
-- **Multiple Providers** - Connect to multiple tool sources simultaneously
+- **Multiple Sources** - Connect to multiple tool sources simultaneously
 - **Async/Await Support** - Full async support with context managers
 - **Type Safe** - Full type hints and validation
-- **Easy Integration** - Drop-in tool provider for Strands agents
+- **Easy Integration** - Drop-in tool adapter for Strands agents
+
+**Key Technical Features:**
+- **AgentTool Inheritance**: Full inheritance from Strands `AgentTool` base class
+- **Tool Name Sanitization**: UUID suffixes for names >64 characters (Bedrock requirement)
 
 ## Requirements
 
 - Python 3.10+
 - Strands Agents SDK 1.7.0+
-- UTCP core libraries
+- UTCP core libraries 1.0+
 
 ## Installation
 
@@ -33,9 +37,9 @@ pip install strands-agents strands-utcp
 
 ```python
 from strands import Agent
-from strands_utcp import UTCPToolProvider
+from strands_utcp import UtcpToolAdapter
 
-# Configure UTCP tool provider
+# Configure UTCP tool adapter
 config = {
     "manual_call_templates": [
         {
@@ -49,13 +53,13 @@ config = {
 
 # Use UTCP tools with Strands agent
 async def main():
-    async with UTCPToolProvider(config) as provider:
+    async with UtcpToolAdapter(config) as adapter:
         # Get available tools
-        tools = provider.list_tools()
+        tools = adapter.list_tools()
         print(f"Found {len(tools)} UTCP tools")
         
         # Create agent with UTCP tools
-        agent = Agent(tools=provider.to_strands_tools())
+        agent = Agent(tools=adapter.to_strands_tools())
         
         # Use the agent
         response = await agent.invoke_async("What's the weather like today?")
@@ -68,22 +72,22 @@ asyncio.run(main())
 ### Tool Discovery
 
 ```python
-async with UTCPToolProvider(config) as provider:
+async with UtcpToolAdapter(config) as adapter:
     # List all available tools
-    all_tools = provider.list_tools()
+    all_tools = adapter.list_tools()
     
     # Search for specific tools
-    weather_tools = await provider.search_tools("weather")
+    weather_tools = await adapter.search_tools("weather")
     
     # Get a specific tool
-    weather_tool = provider.get_tool("get_weather")
+    weather_tool = adapter.get_tool("get_weather")
     
     if weather_tool:
         result = await weather_tool.call(location="New York")
         print(result)
 ```
 
-### Multiple Providers
+### Multiple Sources
 
 ```python
 config = {
@@ -101,9 +105,9 @@ config = {
     ]
 }
 
-async with UTCPToolProvider(config) as provider:
-    tools = provider.list_tools()
-    print(f"Total tools from all providers: {len(tools)}")
+async with UtcpToolAdapter(config) as adapter:
+    tools = adapter.list_tools()
+    print(f"Total tools from all sources: {len(tools)}")
 ```
 
 ## Configuration
@@ -124,79 +128,11 @@ config = {
 }
 ```
 
-### Environment Variables
-
-```bash
-# Optional: Set UTCP-specific environment variables
-export UTCP_LOG_LEVEL=DEBUG
-export UTCP_TIMEOUT=30
-```
-
-## Examples
-
-### Weather Agent
-
-```python
-from strands import Agent
-from strands_utcp import UTCPToolProvider
-
-async def weather_agent():
-    config = {
-        "manual_call_templates": [{
-            "name": "weather_service",
-            "call_template_type": "http",
-            "url": "https://weather-api.example.com/utcp"
-        }]
-    }
-    
-    async with UTCPToolProvider(config) as provider:
-        agent = Agent(
-            tools=provider.to_strands_tools(),
-            system_prompt="You are a helpful weather assistant."
-        )
-        
-        response = await agent.invoke_async(
-            "What's the weather forecast for San Francisco this week?"
-        )
-        return response.message
-```
-
-### Multi-Tool Agent
-
-```python
-async def multi_tool_agent():
-    config = {
-        "manual_call_templates": [
-            {
-                "name": "petstore",
-                "call_template_type": "http",
-                "url": "https://petstore.swagger.io/v2/swagger.json"
-            },
-            {
-                "name": "openlibrary", 
-                "call_template_type": "http",
-                "url": "https://openlibrary.org/static/openapi.json"
-            }
-        ]
-    }
-    
-    async with UTCPToolProvider(config) as provider:
-        tools = provider.list_tools()
-        print(f"Available tools: {[t.tool_name for t in tools]}")
-        
-        agent = Agent(tools=provider.to_strands_tools())
-        
-        response = await agent.invoke_async(
-            "Find books about pets and check pet store inventory"
-        )
-        return response.message
-```
-
 ## API Reference
 
-### UTCPToolProvider
+### UtcpToolAdapter
 
-Main provider class for UTCP tool integration.
+Main adapter class for UTCP tool integration.
 
 #### Methods
 
@@ -208,7 +144,7 @@ Main provider class for UTCP tool integration.
 - `call_tool(name, arguments)` - Execute a tool
 - `to_strands_tools()` - Convert to Strands tool format
 
-### UTCPAgentTool
+### UtcpAgentTool
 
 Wrapper for individual UTCP tools.
 
@@ -222,7 +158,7 @@ Wrapper for individual UTCP tools.
 
 - `call(**kwargs)` - Execute the tool
 
-### UTCPToolProviderError
+### UtcpToolAdapterError
 
 Exception raised for UTCP-specific errors.
 
@@ -260,60 +196,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [UTCP Python Implementation](https://github.com/universal-tool-calling-protocol/python-utcp)
 - [PyPI Package](https://pypi.org/project/strands-utcp/)
 
-## Status
-
-- ✅ Basic UTCP integration
-- ✅ HTTP call template support  
-- ✅ Tool discovery and search
-- ✅ Async/await support
-- ✅ Multiple provider support
-- ✅ End-to-end validation with real APIs
-- ✅ Bedrock-compatible tool naming
-- ✅ JSON Schema conversion
-- 🔄 Advanced authentication (In Progress)
-- 🔄 WebSocket support (Planned)
-- 🔄 Tool caching (Planned)
-
-## Architecture Analysis
-
-### Plugin Architecture
-
-**Core Components**
-
-1. **UTCPToolProvider**: Main provider class that manages UTCP client lifecycle
-2. **UTCPAgentTool**: Wrapper class that adapts UTCP tools for Strands agents
-3. **Configuration**: Simple dictionary-based configuration for HTTP call templates
-
-**Implementation Approach**
-Following minimal code principles, the plugin focuses on:
-
-- **Essential functionality only**: Tool discovery, execution, and Strands integration
-- **No unnecessary abstractions**: Direct mapping between UTCP and Strands concepts
-- **Lean dependencies**: Only required packages in pyproject.toml
-- **Simple configuration**: Dictionary-based config without complex validation
-
-## Validation Results
-
-The plugin has been extensively validated with real APIs:
-
-- ✅ **31 tools discovered** from OpenAPI specs (Petstore + OpenLibrary)
-- ✅ **Real tool execution** with live OpenLibrary API calls
-- ✅ **Successful queries** (e.g., William Shakespeare's author ID: OL9388A)
-- ✅ **Proper error handling** for unavailable APIs
-- ✅ **Bedrock compatibility** with tool name sanitization
-- ✅ **JSON Schema validation** with type conversion
-
-## Technical Details
-
-**UTCP Versions Used:**
-- UTCP core: 1.0.4
-- UTCP-HTTP: 1.0.5
-
-**Key Technical Features:**
-- **Tool Name Sanitization**: UUID suffixes for names >64 characters (Bedrock requirement)
-- **Schema Conversion**: Handles `type: null` and `JsonSchema` object conversion  
-- **AgentTool Inheritance**: Full inheritance from Strands `AgentTool` base class
-- **Type Mapping**: Maps invalid types like `"file"` to valid JSON Schema types
 
 ---
 

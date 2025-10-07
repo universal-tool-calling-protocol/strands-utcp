@@ -5,7 +5,7 @@ import asyncio
 import os
 from dotenv import load_dotenv
 
-from strands_utcp import UTCPToolProvider
+from strands_utcp import UtcpToolAdapter
 from strands import Agent
 
 
@@ -35,35 +35,35 @@ async def main():
     }
     
     # Use UTCP tool provider
-    async with UTCPToolProvider(config) as provider:
+    async with UtcpToolAdapter(config) as adapter:
         print("UTCP tool provider initialized successfully")
         
         # List available tools
-        tools = provider.list_tools()
+        tools = adapter.list_tools()
         print(f"Found {len(tools)} UTCP tools:")
         
         for tool in tools:
             print(f"  - {tool.tool_name}: {tool.description}")
         
         # Search for specific tools
-        pet_tools = await provider.search_tools("pet", max_results=5)
+        pet_tools = await adapter.search_tools("pet", max_results=5)
         print(f"\nFound {len(pet_tools)} pet-related tools:")
         
         for tool in pet_tools:
             print(f"  - {tool.tool_name}: {tool.description}")
         
-        # Search for book tools
-        book_tools = await provider.search_tools("book", max_results=5)
-        print(f"\nFound {len(book_tools)} book-related tools:")
+        # Search for OpenLibrary tools specifically
+        openlibrary_tools = [tool for tool in tools if "openlibrary" in tool.tool_name][:5]
+        print(f"\nFound {len(openlibrary_tools)} OpenLibrary tools:")
         
-        for tool in book_tools:
+        for tool in openlibrary_tools:
             print(f"  - {tool.tool_name}: {tool.description}")
         
         # Create agent with UTCP tools
         if tools:
             print(f"\nCreating agent with {len(tools)} UTCP tools...")
             agent = Agent(
-                tools=provider.to_strands_tools(),
+                tools=adapter.to_strands_tools(),
                 system_prompt="You are a helpful assistant with access to external tools."
             )
             
