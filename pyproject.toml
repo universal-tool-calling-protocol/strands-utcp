@@ -33,10 +33,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/utcp-community/strands-utcp"
-Documentation = "https://github.com/utcp-community/strands-utcp#readme"
-Repository = "https://github.com/utcp-community/strands-utcp"
-Issues = "https://github.com/utcp-community/strands-utcp/issues"
+Homepage = "https://github.com/universal-tool-calling-protocol/strands-utcp"
+Documentation = "https://github.com/universal-tool-calling-protocol/strands-utcp#readme"
+Repository = "https://github.com/universal-tool-calling-protocol/strands-utcp"
+Issues = "https://github.com/universal-tool-calling-protocol/strands-utcp/issues"
 
 [project.optional-dependencies]
 dev = [
