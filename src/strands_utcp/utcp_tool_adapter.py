@@ -252,6 +252,23 @@ class UtcpToolAdapter:
         """Async context manager exit."""
         await self.stop()
 
+    def _build_http_base_kwargs(self, template_config: Dict[str, Any], call_template_type: str) -> Dict[str, Any]:
+        """Build base kwargs common to all HTTP-based call templates (http, sse, streamable_http)."""
+        kwargs = {
+            "name": template_config["name"],
+            "call_template_type": call_template_type,
+            "url": template_config["url"],
+            "http_method": template_config.get("http_method", "GET"),
+            "content_type": template_config.get("content_type", "application/json"),
+        }
+        
+        # Add common optional fields
+        for field in ["auth", "headers", "body_field", "header_fields"]:
+            if field in template_config:
+                kwargs[field] = template_config[field]
+        
+        return kwargs
+
     async def start(self) -> "UtcpToolAdapter":
         """Initialize and start the UTCP client."""
         try:
@@ -261,33 +278,29 @@ class UtcpToolAdapter:
                 call_template_type = template_config.get("call_template_type")
                 
                 if call_template_type == "http":
-                    call_template = HttpCallTemplate(
-                        name=template_config["name"],
-                        call_template_type="http",
-                        url=template_config["url"],
-                        http_method=template_config.get("http_method", "GET"),
-                        content_type=template_config.get("content_type", "application/json"),
-                    )
+                    http_kwargs = self._build_http_base_kwargs(template_config, "http")
+                    if "auth_tools" in template_config:
+                        http_kwargs["auth_tools"] = template_config["auth_tools"]
+                    
+                    call_template = HttpCallTemplate(**http_kwargs)
                     call_templates.append(call_template)
                 
                 elif call_template_type == "sse":
-                    call_template = SseCallTemplate(
-                        name=template_config["name"],
-                        call_template_type="sse",
-                        url=template_config["url"],
-                        http_method=template_config.get("http_method", "GET"),
-                        content_type=template_config.get("content_type", "application/json"),
-                    )
+                    sse_kwargs = self._build_http_base_kwargs(template_config, "sse")
+                    for field in ["event_type", "reconnect", "retry_timeout"]:
+                        if field in template_config:
+                            sse_kwargs[field] = template_config[field]
+                    
+                    call_template = SseCallTemplate(**sse_kwargs)
                     call_templates.append(call_template)
                 
                 elif call_template_type == "streamable_http":
-                    call_template = StreamableHttpCallTemplate(
-                        name=template_config["name"],
-                        call_template_type="streamable_http",
-                        url=template_config["url"],
-                        http_method=template_config.get("http_method", "GET"),
-                        content_type=template_config.get("content_type", "application/json"),
-                    )
+                    streamable_kwargs = self._build_http_base_kwargs(template_config, "streamable_http")
+                    for field in ["chunk_size", "timeout"]:
+                        if field in template_config:
+                            streamable_kwargs[field] = template_config[field]
+                    
+                    call_template = StreamableHttpCallTemplate(**streamable_kwargs)
                     call_templates.append(call_template)
                 
                 elif call_template_type == "cli" and CliCallTemplate:
