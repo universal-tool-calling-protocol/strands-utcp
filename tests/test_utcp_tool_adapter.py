@@ -248,3 +248,368 @@ async def test_utcp_agent_tool_call():
     
     assert result == {"result": "success"}
     mock_adapter.call_tool.assert_called_once_with("test_tool", {"param1": "value1"})
+
+
+@pytest.mark.asyncio
+async def test_http_call_template_auth_passthrough():
+    """Test that auth parameters are passed through to HttpCallTemplate."""
+    from strands_utcp.utcp_tool_adapter import HttpCallTemplate
+    
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "test_api",
+                "call_template_type": "http",
+                "url": "https://api.test.com/utcp",
+                "http_method": "POST",
+                "auth": {
+                    "auth_type": "api_key",
+                    "api_key": "Bearer ${MY_BEARER_TOKEN}",
+                    "var_name": "Authorization",
+                    "location": "header"
+                },
+                "auth_tools": ["tool1", "tool2"],
+                "headers": {"X-Custom-Header": "value"},
+                "body_field": "data",
+                "header_fields": ["X-Request-ID"]
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.HttpCallTemplate') as mock_template_class:
+                adapter = UtcpToolAdapter(config)
+                await adapter.start()
+                
+                # Verify HttpCallTemplate was called with all parameters
+                mock_template_class.assert_called_once()
+                call_kwargs = mock_template_class.call_args[1]
+                
+                assert call_kwargs["name"] == "test_api"
+                assert call_kwargs["call_template_type"] == "http"
+                assert call_kwargs["url"] == "https://api.test.com/utcp"
+                assert call_kwargs["http_method"] == "POST"
+                assert call_kwargs["auth"] == config["manual_call_templates"][0]["auth"]
+                assert call_kwargs["auth_tools"] == ["tool1", "tool2"]
+                assert call_kwargs["headers"] == {"X-Custom-Header": "value"}
+                assert call_kwargs["body_field"] == "data"
+                assert call_kwargs["header_fields"] == ["X-Request-ID"]
+
+
+@pytest.mark.asyncio
+async def test_sse_call_template_auth_passthrough():
+    """Test that auth and SSE-specific parameters are passed through to SseCallTemplate."""
+    from strands_utcp.utcp_tool_adapter import SseCallTemplate
+    
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "test_sse",
+                "call_template_type": "sse",
+                "url": "https://api.test.com/sse",
+                "http_method": "GET",
+                "auth": {
+                    "auth_type": "bearer",
+                    "token": "${MY_TOKEN}"
+                },
+                "headers": {"Accept": "text/event-stream"},
+                "body_field": "payload",
+                "header_fields": ["X-Event-ID"],
+                "event_type": "message",
+                "reconnect": True,
+                "retry_timeout": 5000
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.SseCallTemplate') as mock_template_class:
+                adapter = UtcpToolAdapter(config)
+                await adapter.start()
+                
+                # Verify SseCallTemplate was called with all parameters
+                mock_template_class.assert_called_once()
+                call_kwargs = mock_template_class.call_args[1]
+                
+                assert call_kwargs["name"] == "test_sse"
+                assert call_kwargs["call_template_type"] == "sse"
+                assert call_kwargs["url"] == "https://api.test.com/sse"
+                assert call_kwargs["http_method"] == "GET"
+                assert call_kwargs["auth"] == config["manual_call_templates"][0]["auth"]
+                assert call_kwargs["headers"] == {"Accept": "text/event-stream"}
+                assert call_kwargs["body_field"] == "payload"
+                assert call_kwargs["header_fields"] == ["X-Event-ID"]
+                assert call_kwargs["event_type"] == "message"
+                assert call_kwargs["reconnect"] is True
+                assert call_kwargs["retry_timeout"] == 5000
+
+
+@pytest.mark.asyncio
+async def test_streamable_http_call_template_auth_passthrough():
+    """Test that auth and streamable-specific parameters are passed through to StreamableHttpCallTemplate."""
+    from strands_utcp.utcp_tool_adapter import StreamableHttpCallTemplate
+    
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "test_streamable",
+                "call_template_type": "streamable_http",
+                "url": "https://api.test.com/stream",
+                "http_method": "POST",
+                "auth": {
+                    "auth_type": "basic",
+                    "username": "${MY_USERNAME}",
+                    "password": "${MY_PASSWORD}"
+                },
+                "headers": {"Content-Type": "application/octet-stream"},
+                "body_field": "chunk",
+                "header_fields": ["X-Chunk-Size"],
+                "chunk_size": 8192,
+                "timeout": 30.0
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.StreamableHttpCallTemplate') as mock_template_class:
+                adapter = UtcpToolAdapter(config)
+                await adapter.start()
+                
+                # Verify StreamableHttpCallTemplate was called with all parameters
+                mock_template_class.assert_called_once()
+                call_kwargs = mock_template_class.call_args[1]
+                
+                assert call_kwargs["name"] == "test_streamable"
+                assert call_kwargs["call_template_type"] == "streamable_http"
+                assert call_kwargs["url"] == "https://api.test.com/stream"
+                assert call_kwargs["http_method"] == "POST"
+                assert call_kwargs["auth"] == config["manual_call_templates"][0]["auth"]
+                assert call_kwargs["headers"] == {"Content-Type": "application/octet-stream"}
+                assert call_kwargs["body_field"] == "chunk"
+                assert call_kwargs["header_fields"] == ["X-Chunk-Size"]
+                assert call_kwargs["chunk_size"] == 8192
+                assert call_kwargs["timeout"] == 30.0
+
+
+@pytest.mark.asyncio
+async def test_http_call_template_optional_params_not_required():
+    """Test that HttpCallTemplate works without optional auth/headers parameters."""
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "simple_api",
+                "call_template_type": "http",
+                "url": "https://api.test.com/simple",
+                "http_method": "GET"
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.HttpCallTemplate') as mock_template_class:
+                adapter = UtcpToolAdapter(config)
+                await adapter.start()
+                
+                # Verify HttpCallTemplate was called with only required parameters
+                mock_template_class.assert_called_once()
+                call_kwargs = mock_template_class.call_args[1]
+                
+                assert call_kwargs["name"] == "simple_api"
+                assert call_kwargs["url"] == "https://api.test.com/simple"
+                assert call_kwargs["http_method"] == "GET"
+                # Optional parameters should not be in kwargs if not provided
+                assert "auth" not in call_kwargs
+                assert "headers" not in call_kwargs
+
+
+@pytest.mark.asyncio
+async def test_sse_template_minimal_params():
+    """Test SseCallTemplate with only required parameters, no SSE-specific fields."""
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "minimal_sse",
+                "call_template_type": "sse",
+                "url": "https://api.test.com/sse"
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.SseCallTemplate') as mock_template_class:
+                adapter = UtcpToolAdapter(config)
+                await adapter.start()
+                
+                call_kwargs = mock_template_class.call_args[1]
+                # Verify SSE-specific fields are not present
+                assert "event_type" not in call_kwargs
+                assert "reconnect" not in call_kwargs
+                assert "retry_timeout" not in call_kwargs
+                # But common fields are present with defaults
+                assert call_kwargs["http_method"] == "GET"
+                assert call_kwargs["content_type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_streamable_http_minimal_params():
+    """Test StreamableHttpCallTemplate with only required parameters."""
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "minimal_stream",
+                "call_template_type": "streamable_http",
+                "url": "https://api.test.com/stream"
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.StreamableHttpCallTemplate') as mock_template_class:
+                adapter = UtcpToolAdapter(config)
+                await adapter.start()
+                
+                call_kwargs = mock_template_class.call_args[1]
+                # Verify streamable-specific fields are not present
+                assert "chunk_size" not in call_kwargs
+                assert "timeout" not in call_kwargs
+                # But common fields are present with defaults
+                assert call_kwargs["http_method"] == "GET"
+                assert call_kwargs["content_type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_multiple_mixed_templates():
+    """Test configuration with multiple template types in one config."""
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "api1",
+                "call_template_type": "http",
+                "url": "http://api1.com"
+            },
+            {
+                "name": "sse1",
+                "call_template_type": "sse",
+                "url": "http://sse1.com"
+            },
+            {
+                "name": "stream1",
+                "call_template_type": "streamable_http",
+                "url": "http://stream.com"
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.HttpCallTemplate') as mock_http:
+                with patch('strands_utcp.utcp_tool_adapter.SseCallTemplate') as mock_sse:
+                    with patch('strands_utcp.utcp_tool_adapter.StreamableHttpCallTemplate') as mock_stream:
+                        adapter = UtcpToolAdapter(config)
+                        await adapter.start()
+                        
+                        # Verify each template type was instantiated once
+                        mock_http.assert_called_once()
+                        mock_sse.assert_called_once()
+                        mock_stream.assert_called_once()
+                        
+                        # Verify the correct URLs were used
+                        http_kwargs = mock_http.call_args[1]
+                        sse_kwargs = mock_sse.call_args[1]
+                        stream_kwargs = mock_stream.call_args[1]
+                        
+                        assert http_kwargs["name"] == "api1"
+                        assert http_kwargs["url"] == "http://api1.com"
+                        assert sse_kwargs["name"] == "sse1"
+                        assert sse_kwargs["url"] == "http://sse1.com"
+                        assert stream_kwargs["name"] == "stream1"
+                        assert stream_kwargs["url"] == "http://stream.com"
+
+
+@pytest.mark.asyncio
+async def test_content_type_default():
+    """Test that content_type defaults to application/json when not specified."""
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "default_content_type",
+                "call_template_type": "http",
+                "url": "https://api.test.com"
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.HttpCallTemplate') as mock_template_class:
+                adapter = UtcpToolAdapter(config)
+                await adapter.start()
+                
+                call_kwargs = mock_template_class.call_args[1]
+                assert call_kwargs["content_type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_content_type_override():
+    """Test that content_type can be overridden."""
+    config = {
+        "manual_call_templates": [
+            {
+                "name": "custom_content_type",
+                "call_template_type": "http",
+                "url": "https://api.test.com",
+                "content_type": "application/xml"
+            }
+        ]
+    }
+    
+    with patch('strands_utcp.utcp_tool_adapter.UtcpClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.create = AsyncMock(return_value=mock_client)
+        mock_client.search_tools.return_value = []
+        
+        with patch('strands_utcp.utcp_tool_adapter.UtcpClientConfig') as mock_config_class:
+            with patch('strands_utcp.utcp_tool_adapter.HttpCallTemplate') as mock_template_class:
+                adapter = UtcpToolAdapter(config)
+                await adapter.start()
+                
+                call_kwargs = mock_template_class.call_args[1]
+                assert call_kwargs["content_type"] == "application/xml"
