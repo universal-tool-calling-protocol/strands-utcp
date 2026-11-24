@@ -6,6 +6,8 @@
 
 Universal Tool Calling Protocol (UTCP) community plugin for [Strands Agents SDK](https://github.com/strands-agents/sdk-python)
 
+For Node.js, see the [TypeScript adapter and quickstart](https://github.com/universal-tool-calling-protocol/strands-utcp/blob/main/typescript/README.md). The instructions below cover Python.
+
 ## Features
 
 - **Universal Tool Access** - Connect to any UTCP-compatible tool source

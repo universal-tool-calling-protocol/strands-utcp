@@ -54,6 +54,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/strands_utcp"]
 
+[tool.hatch.build.targets.sdist]
+exclude = ["/typescript"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
