@@ -1,0 +1,41 @@
+{
+  "name": "@utcp/strands",
+  "version": "0.1.0",
+  "description": "Use tools discovered by a UTCP client with the Strands Agents SDK",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/universal-tool-calling-protocol/strands-utcp.git",
+    "directory": "typescript"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "LICENSE"],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test",
+    "prepack": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@strands-agents/sdk": "^1.26.0",
+    "@utcp/sdk": "^1.2.0"
+  },
+  "devDependencies": {
+    "@strands-agents/sdk": "1.26.0",
+    "@types/node": "^22.0.0",
+    "@utcp/http": "1.1.14",
+    "@utcp/sdk": "1.2.0",
+    "typescript": "~5.9.3"
+  }
+}
